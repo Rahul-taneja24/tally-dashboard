@@ -1,4 +1,3 @@
-# Enhanced version of your existing script with integrated API server
 import xml.etree.ElementTree as ET
 import requests
 import sqlite3
@@ -61,14 +60,18 @@ class TallyDataExtractor:
     def setup_api_server(self):
         """Setup Flask API server for serving data"""
         self.app = Flask(__name__)
-        CORS(self.app)
+        # Updated CORS to allow your domain and fallback to wildcard
+        CORS(self.app, resources={r"/api/*": {"origins": ["https://m.yourdomain.com", "*"]}}, supports_credentials=True)
         
-        API_SECRET_KEY = os.environ.get('API_SECRET_KEY', 'your-secret-key-change-this')
+        API_SECRET_KEY = os.environ.get('API_SECRET_KEY', 'TallyDash2024SecureKey789XYZ')
+        logging.info(f"API server using key: {API_SECRET_KEY}")
         
         def verify_api_key(f):
             @wraps(f)
             def decorated_function(*args, **kwargs):
+                logging.info(f"All headers: {dict(request.headers)}")
                 api_key = request.headers.get('X-API-Key')
+                logging.info(f"Received API key: {api_key}")
                 if not api_key or api_key != API_SECRET_KEY:
                     return jsonify({'error': 'Invalid API key'}), 401
                 return f(*args, **kwargs)
