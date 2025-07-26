@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tally Dashboard - Debtors & Creditors</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .header h1 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .last-updated {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .summary-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .summary-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+        }
+        
+        .summary-card h3 {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .summary-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .debtors .summary-value { color: #e53e3e; }
+        .creditors .summary-value { color: #38a169; }
+        .net .summary-value { color: #3182ce; }
+        .total .summary-value { color: #805ad5; }
+        
+        .search-container {
+            margin-bottom: 1.5rem;
+        }
+        
+        .search-input {
+            width: 100%;
+            padding: 1rem 3rem 1rem 1rem;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            font-size: 1rem;
+            outline: none;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .search-input:focus {
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 0.5rem;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: #718096;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .accounts-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .account-item {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            transition: background-color 0.2s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .account-item:last-child {
+            border-bottom: none;
+        }
+        
+        .account-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+        
+        .account-info {
+            flex: 1;
+        }
+        
+        .account-name {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
+        }
+        
+        .account-meta {
+            color: #718096;
+            font-size: 0.85rem;
+        }
+        
+        .account-balance {
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-align: right;
+        }
+        
+        .debtor-balance { color: #e53e3e; }
+        .creditor-balance { color: #38a169; }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            color: #718096;
+        }
+        
+        .error {
+            background: rgba(254, 226, 226, 0.95);
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(254, 178, 178, 0.5);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #718096;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .status-online {
+            background: rgba(72, 187, 120, 0.1);
+            color: #38a169;
+        }
+        
+        .status-offline {
+            background: rgba(229, 62, 62, 0.1);
+            color: #e53e3e;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 0.75rem;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .summary-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 0.75rem;
+            }
+            
+            .summary-card {
+                padding: 1rem;
+            }
+            
+            .summary-value {
+                font-size: 1.4rem;
+            }
+            
+            .account-item {
+                padding: 0.75rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .account-balance {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+        const { Search, RefreshCw, TrendingUp, TrendingDown, Users, DollarSign } = lucide;
+        
+        // Configuration
+        const API_BASE_URL = 'http://localhost:5000/api'; // Change this to your actual API URL
+        const API_KEY = 'your-secret-key-change-this'; // Change this to match your Flask app
+        
+        const formatCurrency = (amount) => {
+            return new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        };
+        
+        const formatDate = (dateString) => {
+            if (!dateString) return 'N/A';
+            try {
+                return new Date(dateString).toLocaleString('en-IN', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch {
+                return 'N/A';
+            }
+        };
+        
+        const Dashboard = () => {
+            const [data, setData] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [activeTab, setActiveTab] = useState('all');
+            const [searchQuery, setSearchQuery] = useState('');
+            const [isOnline, setIsOnline] = useState(true);
+            
+            const fetchData = async () => {
+                setLoading(true);
+                setError(null);
+                
+                try {
+                    const response = await fetch(`${API_BASE_URL}/dashboard-data`, {
+                        headers: {
+                            'X-API-Key': API_KEY,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const result = await response.json();
+                    setData(result);
+                    setIsOnline(true);
+                } catch (err) {
+                    setError(err.message);
+                    setIsOnline(false);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            
+            useEffect(() => {
+                fetchData();
+                
+                // Auto-refresh every 5 minutes
+                const interval = setInterval(fetchData, 5 * 60 * 1000);
+                return () => clearInterval(interval);
+            }, []);
+            
+            const filteredAccounts = useMemo(() => {
+                if (!data) return [];
+                
+                let accounts = [];
+                if (activeTab === 'all') {
+                    accounts = [...data.debtors, ...data.creditors];
+                } else if (activeTab === 'debtors') {
+                    accounts = data.debtors;
+                } else if (activeTab === 'creditors') {
+                    accounts = data.creditors;
+                }
+                
+                if (searchQuery) {
+                    accounts = accounts.filter(account =>
+                        account.name.toLowerCase().includes(searchQuery.toLowerCase())
+                    );
+                }
+                
+                return accounts.sort((a, b) => b.closing_balance - a.closing_balance);
+            }, [data, activeTab, searchQuery]);
+            
+            if (loading && !data) {
+                return (
+                    <div className="container">
+                        <div className="loading">
+                            <RefreshCw className="animate-spin" size={24} />
+                            <span style={{marginLeft: '0.5rem'}}>Loading dashboard...</span>
+                        </div>
+                    </div>
+                );
+            }
+            
+            return (
+                <div className="container">
+                    <div className="header">
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem'}}>
+                            <div>
+                                <h1>Tally Dashboard</h1>
+                                <div className="last-updated">
+                                    Last updated: {data?.summary.last_updated ? formatDate(data.summary.last_updated) : 'Never'}
+                                </div>
+                            </div>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                                <div className={`status-indicator ${isOnline ? 'status-online' : 'status-offline'}`}>
+                                    <div style={{width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isOnline ? '#38a169' : '#e53e3e'}}></div>
+                                    {isOnline ? 'Online' : 'Offline'}
+                                </div>
+                                <button className="refresh-btn" onClick={fetchData} disabled={loading}>
+                                    <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {error && (
+                        <div className="error">
+                            <strong>Error:</strong> {error}
+                        </div>
+                    )}
+                    
+                    {data && (
+                        <>
+                            <div className="summary-grid">
+                                <div className="summary-card debtors">
+                                    <h3>Total Debtors</h3>
+                                    <div className="summary-value">
+                                        {formatCurrency(data.summary.total_debtors)}
+                                    </div>
+                                    <div style={{color: '#718096', fontSize: '0.9rem'}}>
+                                        {data.summary.debtors_count} accounts
+                                    </div>
+                                </div>
+                                
+                                <div className="summary-card creditors">
+                                    <h3>Total Creditors</h3>
+                                    <div className="summary-value">
+                                        {formatCurrency(data.summary.total_creditors)}
+                                    </div>
+                                    <div style={{color: '#718096', fontSize: '0.9rem'}}>
+                                        {data.summary.creditors_count} accounts
+                                    </div>
+                                </div>
+                                
+                                <div className="summary-card net">
+                                    <h3>Net Position</h3>
+                                    <div className="summary-value">
+                                        {formatCurrency(data.summary.net_position)}
+                                    </div>
+                                    <div style={{color: '#718096', fontSize: '0.9rem'}}>
+                                        {data.summary.net_position >= 0 ? 'Net Receivable' : 'Net Payable'}
+                                    </div>
+                                </div>
+                                
+                                <div className="summary-card total">
+                                    <h3>Total Accounts</h3>
+                                    <div className="summary-value">
+                                        {data.summary.total_accounts}
+                                    </div>
+                                    <div style={{color: '#718096', fontSize: '0.9rem'}}>
+                                        Active accounts
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="search-container">
+                                <input
+                                    type="text"
+                                    className="search-input"
+                                    placeholder="Search accounts..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            
+                            <div className="tabs">
+                                <button
+                                    className={`tab ${activeTab === 'all' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('all')}
+                                >
+                                    All ({data.summary.total_accounts})
+                                </button>
+                                <button
+                                    className={`tab ${activeTab === 'debtors' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('debtors')}
+                                >
+                                    Debtors ({data.summary.debtors_count})
+                                </button>
+                                <button
+                                    className={`tab ${activeTab === 'creditors' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('creditors')}
+                                >
+                                    Creditors ({data.summary.creditors_count})
+                                </button>
+                            </div>
+                            
+                            <div className="accounts-container">
+                                {filteredAccounts.length === 0 ? (
+                                    <div className="empty-state">
+                                        <Users size={48} style={{color: '#cbd5e0', marginBottom: '1rem'}} />
+                                        <div>No accounts found</div>
+                                        {searchQuery && (
+                                            <div style={{fontSize: '0.9rem', marginTop: '0.5rem'}}>
+                                                Try adjusting your search query
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    filteredAccounts.map((account, index) => (
+                                        <div key={index} className="account-item">
+                                            <div className="account-info">
+                                                <div className="account-name">{account.name}</div>
+                                                <div className="account-meta">
+                                                    {account.parent_group}
+                                                    {account.due_date && ` • Due: ${account.due_date}`}
+                                                </div>
+                                            </div>
+                                            <div className={`account-balance ${account.type === 'debtor' ? 'debtor-balance' : 'creditor-balance'}`}>
+                                                {formatCurrency(account.closing_balance)}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </>
+                    )}
+                </div>
+            );
+        };
+        
+        ReactDOM.render(<Dashboard />, document.getElementById('root'));
+    </script>
+</body>
+</html>
